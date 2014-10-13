@@ -13,6 +13,7 @@ ASCII map in map-world-01.txt is copyright:
  "Map 1998 Matthew Thomas. Freely usable as long as this line is included"
 
 '''
+from __future__ import unicode_literals
 import curses
 import json
 import locale
@@ -20,7 +21,7 @@ import os
 import random
 import sys
 import time
-import urllib2
+import urllib.request
 
 
 STREAMS = {
@@ -46,7 +47,7 @@ class AsciiMap(object):
     def __init__(self, map_name='world', map_conf=None, window=None, encoding=None):
         if map_conf is None:
             map_conf = MAPS[map_name]
-        with open(map_conf['file'], 'rb') as mapf:
+        with open(map_conf['file'], 'r') as mapf:
             self.map = mapf.read()
         self.coords = map_conf['coords']
         self.corners = map_conf['corners']
@@ -106,10 +107,10 @@ class AsciiMap(object):
         """
         entries = []
         formats = [
-            u"{name} / {country} {city}",
-            u"{name} / {country}",
-            u"{name}",
-            u"{type}",
+            "{name} / {country} {city}",
+            "{name} / {country}",
+            "{name}",
+            "{type}",
         ]
         dets = data.get('detections', [])
         for det in random.sample(dets, min(len(dets), 5)):
@@ -125,7 +126,7 @@ class AsciiMap(object):
                 try:
                     desc = fmt.format(**det)
                     break
-                except StandardError:
+                except Exception:
                     pass
             entry = (
                 float(det['lat']),
@@ -174,7 +175,7 @@ class AsciiMap(object):
                     self.window.addstr(row, 1, det_show, attrs)
                     row += 1
                     items_to_show -= 1
-                except StandardError:
+                except Exception:
                     # FIXME: check window size before addstr()
                     break
         self.window.overwrite(target)
@@ -213,11 +214,8 @@ class MapApp(object):
                 refresh = True
 
         if refresh:
-            try:
-                self.data = json.load(urllib2.urlopen(self.stream_url))
-                self.last_fetch = epoch_now
-            except StandardError:
-                pass
+            self.data = json.loads(urllib.request.urlopen(self.stream_url).readall().decode('utf-8'))
+            self.last_fetch = epoch_now
         return refresh
 
     def run_curses_app(self, scr):
